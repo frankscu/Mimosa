@@ -1,0 +1,268 @@
+//
+// ********************************************************************
+// * License and Disclaimer                                           *
+// *                                                                  *
+// * The  Geant4 software  is  copyright of the Copyright Holders  of *
+// * the Geant4 Collaboration.  It is provided  under  the terms  and *
+// * conditions of the Geant4 Software License,  included in the file *
+// * LICENSE and available at  http://cern.ch/geant4/license .  These *
+// * include a list of copyright holders.                             *
+// *                                                                  *
+// * Neither the authors of this software system, nor their employing *
+// * institutes,nor the agencies providing financial support for this *
+// * work  make  any representation or  warranty, express or implied, *
+// * regarding  this  software system or assume any liability for its *
+// * use.  Please see the license in the file  LICENSE  and URL above *
+// * for the full disclaimer and the limitation of liability.         *
+// *                                                                  *
+// * This  code  implementation is the result of  the  scientific and *
+// * technical work of the GEANT4 collaboration.                      *
+// * By using,  copying,  modifying or  distributing the software (or *
+// * any work based  on the software)  you  agree  to acknowledge its *
+// * use  in  resulting  scientific  publications,  and indicate your *
+// * acceptance of all terms of the Geant4 Software license.          *
+// ********************************************************************
+//
+// $Id$
+// 
+/// \file MimosaEventAction.cc
+/// \brief Implementation of the MimosaEventAction class
+
+#include "MimosaEventAction.hh"
+#include "MimosaEventActionMessenger.hh"
+#include "MimosaSD.hh"
+#include "MimosaHit.hh"
+#include "MimosaAnalysis.hh"
+
+#include "G4RunManager.hh"
+#include "G4Event.hh"
+#include "G4SDManager.hh"
+#include "G4HCofThisEvent.hh"
+#include "G4UnitsTable.hh"
+
+#include "MimosaDigi.hh"
+#include "MimosaDigitizer.hh"
+#include "G4DigiManager.hh"
+
+#include "Randomize.hh"
+#include <iomanip>
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+MimosaEventAction::MimosaEventAction()
+ : G4UserEventAction(),
+   fMessenger(0),
+   fPrintModulo(1)
+{
+  fMessenger = new MimosaEventActionMessenger(this);
+  G4DigiManager * fDM = G4DigiManager::GetDMpointer();
+  MimosaDigitizer * mimosaDTZ = new MimosaDigitizer( "MimosaDigitizer" );
+  fDM->AddNewModule(mimosaDTZ);
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+MimosaEventAction::~MimosaEventAction()
+{
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+MimosaHitsCollection* 
+MimosaEventAction::GetHitsCollection(const G4String& hcName,
+                                  const G4Event* event) const
+{
+  G4int HCID 
+    = G4SDManager::GetSDMpointer()->GetCollectionID(hcName);
+    
+  MimosaHitsCollection* hitsCollection 
+    = static_cast<MimosaHitsCollection*>(
+        event->GetHCofThisEvent()->GetHC(HCID));
+	
+  
+  if ( ! hitsCollection ) {
+    G4cerr << "MimosaEventAction :: Cannot access hitsCollection " << hcName << G4endl;
+    exit(1);
+  }         
+
+  return hitsCollection;
+}    
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void MimosaEventAction::PrintEventStatistics(G4double hitEdep, G4double truthEdep) const
+{
+  // print event statistics
+  G4cout
+     << "   Hit: total energy: " 
+     << std::setw(7) << G4BestUnit(hitEdep, "Energy")
+     << G4endl
+     << "   Truth: total energy: " 
+     << std::setw(7) << G4BestUnit(truthEdep, "Energy")
+     << G4endl;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void MimosaEventAction::BeginOfEventAction(const G4Event* event)
+{  
+
+  G4int eventID = event->GetEventID();
+  if ( eventID % fPrintModulo == 0 )  { 
+    G4cout << "\n---> Begin of event: " << eventID << G4endl;
+    //CLHEP::HepRandom::showEngineStatus();
+  }
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void MimosaEventAction::EndOfEventAction(const G4Event* event)
+{ 
+  //Digitize
+  G4DigiManager * fDM = G4DigiManager::GetDMpointer();
+  MimosaDigitizer * mimosaDTZ = (MimosaDigitizer*)fDM->FindDigitizerModule( "MimosaDigitizer" );
+  mimosaDTZ->Digitize();
+  G4int myDigiCollID = fDM->GetDigiCollectionID("MimosaDigisCollection");
+  MimosaDigisCollection* digiC = (MimosaDigisCollection*)fDM->GetDigiCollection( myDigiCollID );
+
+  // Get hits collections
+  MimosaHitsCollection* hitsC
+    = GetHitsCollection("MimosaHitsCollection", event);
+  MimosaHitsCollection* truthC
+    = GetHitsCollection("MimosaTruthCollection", event);
+
+  if(hitsC->entries()==0 && truthC->entries()==0){
+    G4cerr << "MimosaEventAction :: There is no hits in MimosaHitsCollections!!! " << G4endl;
+    //exit(1);
+    return;
+  }
+
+  // get analysis manager
+  G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+
+  G4int nofDigi = digiC->entries();
+  G4int clusterSize=0;
+  G4int truthCS=0;
+  G4int trackId,rowId,colId;
+  G4int lastRow=-9999;
+  G4int lastCol=-9999;
+  G4int lastTruthRow=-9999;
+  G4int lastTruthCol=-9999;
+
+  G4int nofEntry=hitsC->entries();
+  for(G4int i=0;i<nofEntry;++i){
+
+    // Get hit with total values
+
+    if(i<nofDigi){
+      MimosaDigi* newDigi = (*digiC)[i];
+      trackId=newDigi->GetTrackID();
+      rowId=newDigi->GetRow();
+      colId=newDigi->GetCol();
+      analysisManager->FillNtupleIColumn(0, trackId);
+      analysisManager->FillNtupleIColumn(1, newDigi->GetLayerID());
+      analysisManager->FillNtupleIColumn(2, newDigi->GetLadderID());
+      analysisManager->FillNtupleIColumn(3, newDigi->GetChipID());
+      analysisManager->FillNtupleIColumn(4, rowId);
+      analysisManager->FillNtupleIColumn(5, colId);
+      analysisManager->FillNtupleDColumn(6, newDigi->GetEdep());
+      analysisManager->FillNtupleDColumn(7, newDigi->GetGlobalT());
+      if(trackId>-1){
+	if((rowId != lastRow) || (colId != lastCol)){
+	  ++clusterSize;
+	  lastRow=rowId;
+	  lastCol=colId;
+	}
+      }
+    }
+    else{
+      analysisManager->FillNtupleIColumn(0, -9999);
+      analysisManager->FillNtupleIColumn(1, -9999);
+      analysisManager->FillNtupleIColumn(2, -9999);
+      analysisManager->FillNtupleIColumn(3, -9999);
+      analysisManager->FillNtupleIColumn(4, -9999);
+      analysisManager->FillNtupleIColumn(5, -9999);
+      analysisManager->FillNtupleDColumn(6, -1);
+      analysisManager->FillNtupleDColumn(7, -1);
+    }
+ 
+      MimosaHit* newHit = (*hitsC)[i];
+      // fill histograms
+//      analysisManager->FillH1(1, newHit->GetEdep());
+      // fill ntuple
+      analysisManager->FillNtupleIColumn(8, newHit->GetTrackID());
+      analysisManager->FillNtupleIColumn(9, newHit->GetLayerID());
+      analysisManager->FillNtupleIColumn(10, newHit->GetLadderID());
+      analysisManager->FillNtupleIColumn(11, newHit->GetChipID());
+      analysisManager->FillNtupleIColumn(12, newHit->GetRow());
+      analysisManager->FillNtupleIColumn(13, newHit->GetCol());
+      analysisManager->FillNtupleDColumn(14, newHit->GetEdep());
+      analysisManager->FillNtupleDColumn(15, newHit->GetGlobalT());
+ 
+    if(i<truthC->entries()){
+      MimosaHit* truthHit = (*truthC)[i];
+    // fill histograms
+//    analysisManager->FillH1(2, truthHit->GetEdep()); 
+    // fill ntuple
+      analysisManager->FillNtupleIColumn(16, truthHit->GetTrackID());
+      analysisManager->FillNtupleIColumn(17, truthHit->GetLayerID());
+      analysisManager->FillNtupleIColumn(18, truthHit->GetLadderID());
+      analysisManager->FillNtupleIColumn(19, truthHit->GetChipID());
+      analysisManager->FillNtupleIColumn(20, truthHit->GetRow());
+      analysisManager->FillNtupleIColumn(21, truthHit->GetCol());
+      analysisManager->FillNtupleDColumn(22, truthHit->GetEdep());
+      analysisManager->FillNtupleDColumn(23, truthHit->GetGlobalT());
+      analysisManager->FillNtupleIColumn(24, truthHit->GetPDGCode());
+      trackId=truthHit->GetTrackID();
+      rowId=truthHit->GetRow();
+      colId=truthHit->GetCol();
+      if(trackId>-1){
+	if((rowId != lastTruthRow) || (colId != lastTruthCol)){
+	  ++truthCS;
+	  lastTruthRow=rowId;
+	  lastTruthCol=colId;
+	}
+      }
+    }
+    else{
+      analysisManager->FillNtupleIColumn(16, -9999);
+      analysisManager->FillNtupleIColumn(17, -9999);
+      analysisManager->FillNtupleIColumn(18, -9999);
+      analysisManager->FillNtupleIColumn(19, -9999);
+      analysisManager->FillNtupleIColumn(20, -9999);
+      analysisManager->FillNtupleIColumn(21, -9999);
+      analysisManager->FillNtupleDColumn(22, -1);
+      analysisManager->FillNtupleDColumn(23, -1);
+      analysisManager->FillNtupleIColumn(24, -1);
+    }
+      
+    if(i==nofEntry-1){
+      analysisManager->FillNtupleIColumn(25, clusterSize);
+      analysisManager->FillNtupleIColumn(26, truthCS);
+    }else{
+      if(i<nofDigi && trackId==-1){
+	analysisManager->FillNtupleIColumn(25, 1);
+      }else{
+	analysisManager->FillNtupleIColumn(25, -1);
+      }
+      analysisManager->FillNtupleIColumn(26, -1);
+    }
+  
+    analysisManager->FillNtupleIColumn(27, event->GetEventID());
+
+    analysisManager->AddNtupleRow(); 
+ 
+
+
+  }
+    // Print per event (modulo n)   
+    G4int eventID = event->GetEventID();
+    if ( eventID % fPrintModulo == 0) {
+      G4cout << "---> End of event: " << eventID << G4endl;     
+//      PrintEventStatistics(newHit->GetEdep(),truthHit->GetEdep());
+    }    
+
+}  
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+

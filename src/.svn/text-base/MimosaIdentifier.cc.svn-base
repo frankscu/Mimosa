@@ -1,0 +1,20 @@
+
+#include "MimosaIdentifier.hh"
+#include "G4ios.hh"
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+MimosaIdentifier::MimosaIdentifier(int layer,int ladder,int chip,int column,int row,long pixel){
+  m_layerId=layer;
+  m_ladderId=ladder;
+  m_chipId=chip;
+  m_columnId=column;
+  m_rowId=row;
+  m_pixelId=pixel;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void MimosaIdentifier::Print(){
+  G4cout<<"MimosaID::Layer: "<<m_layerId<<" Ladder: "<<m_ladderId<<" Chip: "<<m_chipId<<" Column: "<<m_columnId<<" Row: "<<m_rowId<<" Key: "<<m_pixelId<<G4endl;
+}

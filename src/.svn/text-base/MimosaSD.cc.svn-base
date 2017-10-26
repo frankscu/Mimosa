@@ -1,0 +1,447 @@
+//
+// ********************************************************************
+// * License and Disclaimer                                           *
+// *                                                                  *
+// * The  Geant4 software  is  copyright of the Copyright Holders  of *
+// * the Geant4 Collaboration.  It is provided  under  the terms  and *
+// * conditions of the Geant4 Software License,  included in the file *
+// * LICENSE and available at  http://cern.ch/geant4/license .  These *
+// * include a list of copyright holders.                             *
+// *                                                                  *
+// * Neither the authors of this software system, nor their employing *
+// * institutes,nor the agencies providing financial support for this *
+// * work  make  any representation or  warranty, express or implied, *
+// * regarding  this  software system or assume any liability for its *
+// * use.  Please see the license in the file  LICENSE  and URL above *
+// * for the full disclaimer and the limitation of liability.         *
+// *                                                                  *
+// * This  code  implementation is the result of  the  scientific and *
+// * technical work of the GEANT4 collaboration.                      *
+// * By using,  copying,  modifying or  distributing the software (or *
+// * any work based  on the software)  you  agree  to acknowledge its *
+// * use  in  resulting  scientific  publications,  and indicate your *
+// * acceptance of all terms of the Geant4 Software license.          *
+// ********************************************************************
+//
+// $Id$
+//
+/// \file MimosaSD.cc
+/// \brief Implementation of the MimosaSD class
+
+#include "MimosaSD.hh"
+#include "G4HCofThisEvent.hh"
+#include "G4Step.hh"
+#include "G4ThreeVector.hh"
+#include "G4SDManager.hh"
+#include "G4ios.hh"
+#include "Randomize.hh"
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+MimosaSD::MimosaSD(const G4String& name)
+ : G4VSensitiveDetector(name),
+   hitsCollection(0)
+{
+  collectionName.insert("MimosaHitsCollection");
+  collectionName.insert("MimosaTruthCollection");
+  mimosaGeoPointer=MimosaGeoParameter::GetGeo();
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+MimosaSD::~MimosaSD() 
+{ 
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void MimosaSD::Initialize(G4HCofThisEvent* HCE)
+{
+  // Create hits collection
+  hitsCollection 
+    = new MimosaHitsCollection(SensitiveDetectorName, collectionName[0]); 
+
+  // Add this collection in HCE
+  G4int HCID = -1;
+  if(HCID<0) HCID = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[0]);
+  HCE->AddHitsCollection( HCID, hitsCollection ); 
+
+//for MC truth
+  truthCollection 
+    = new MimosaHitsCollection(SensitiveDetectorName,collectionName[1]);
+
+  static G4int HLID=-1;
+  if(HLID<0){
+    HLID = G4SDManager::GetSDMpointer() -> GetCollectionID(collectionName[1]); 
+  }
+  HCE->AddHitsCollection(HLID,truthCollection);
+
+}
+
+/*
+//for MC Truth
+void MimosaSD::BeginOfTruthEvent(const G4Event* evt)
+{  
+  truthCollection = new MimosaHitsCollection
+  (SensitiveDetectorName,collectionName[1]); 
+//  G4cout<<" begin event "<<evt->GetEventID()<<G4endl;
+}
+
+void MimosaSD::EndOfTruthEvent(const G4Event* evt)
+{
+  static G4int HLID=-1;
+  if(HLID<0){
+    HLID = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[1]); 
+  }
+  G4HCofThisEvent* HCE = evt->GetHCofThisEvent();
+  HCE->AddHitsCollection(HLID,truthCollection);
+}
+*/
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+G4bool MimosaSD::ProcessHits(G4Step* aStep, G4TouchableHistory*)
+{
+  G4Track* gTrack = aStep->GetTrack() ;
+  G4double globalT=gTrack->GetGlobalTime();//Time since the event in which the track belongs is created
+
+/*
+  if(isnan(globalT)){
+    G4cout<<"MimosaSD:error, globalT is nan "<<G4endl;
+    return false;
+  }
+  if(globalT > 2000)return false; //Mimosa T window is 2 microsecond 
+*/
+  //skip neutral tracks
+//  G4int charge = gTrack->GetDefinition()->GetPDGCharge();
+//  if (charge == 0) return false;
+/*
+  G4double stepLength=aStep->GetStepLength();
+  if(stepLength==0){
+	  //    G4cout<<"step length equal 0!!"<<G4endl;
+	  return false;
+  }
+
+  G4double edep = aStep->GetTotalEnergyDeposit() / stepLength;
+  if(edep==0.) return false;
+*/
+  // energy deposit
+  G4double edep = aStep->GetTotalEnergyDeposit();
+  
+  // step length
+  //G4double stepLength = aStep->GetStepLength();  
+
+  if ( edep==0 ) return false;      
+
+  // get position of the track at the beginning and at the end of step
+  G4StepPoint* prePoint  = aStep->GetPreStepPoint() ;
+  G4StepPoint* postPoint = aStep->GetPostStepPoint() ;
+
+  //get position coordinate
+  G4ThreeVector pointIn  = prePoint->GetPosition();
+  G4ThreeVector pointOut = postPoint->GetPosition();
+  G4ThreeVector hitPosition = (pointIn+pointOut)/2;
+
+  const G4VTouchable *touchable = prePoint->GetTouchable();
+
+  G4ThreeVector preLPos = touchable->GetHistory()->GetTopTransform().TransformPoint(pointIn);
+  G4ThreeVector postLPos = touchable->GetHistory()->GetTopTransform().TransformPoint(pointOut);
+
+
+  G4int trackID = 0;
+  G4int layerID = 0;
+  G4int ladderID = 0;
+  G4int chipID = 0;
+  G4int row = 0;
+  G4int column = 0;
+// history depth :| 0:pixel; 1:column; 2:sensor; 3:chip; 4:ladder; 5:layer
+//  pixelID = touchable->GetVolume(0)->GetCopyNo();
+  trackID = gTrack->GetTrackID();
+  row = touchable->GetReplicaNumber(0);
+  column = touchable->GetReplicaNumber(1);
+  chipID =  touchable->GetVolume(3)->GetCopyNo();
+
+  G4String particleName=gTrack->GetDefinition()->GetParticleName();
+  G4int pdgCode=gTrack->GetDefinition()->GetPDGEncoding();
+  G4int charge = gTrack->GetDefinition()->GetPDGCharge();
+  G4cout<<"MyMessage::ParticleName: "<<particleName<<" PdgCode: "<<pdgCode<<" Charge: "<<charge<<" RowID: "<<row<<" ColID: "<<column<<G4endl;
+
+  G4int nofCol=mimosaGeoPointer->Layer(layerID).ColNo();
+  G4long key = row*nofCol+column;
+  MimosaIdentifier mimosaID(layerID,ladderID,chipID,column,row,key);
+
+  hitVec.clear(); 
+  HitRealizition(edep,preLPos,postLPos,mimosaID);
+
+  G4cout<<"MyMessage:: preLPos.X: "<<preLPos.x()<<" Y: "<<preLPos.y()<<" Z: "<<preLPos.z()<<G4endl;
+  G4cout<<"MyMessage::postLPos.X: "<<postLPos.x()<<" Y: "<<postLPos.y()<<" Z: "<<postLPos.z()<<G4endl;
+  G4cout<<""<<G4endl;
+/*
+  G4double theta=gTrack->GetMomentumDirection().theta();
+
+  G4ThreeVector hitLine=pointOut-pointIn;
+  G4double enterAngle=hitLine.phi()-pointIn.phi();
+  while(enterAngle<-pi/2.)enterAngle+=pi;
+  while(enterAngle>pi/2.)enterAngle-=pi;
+*/
+
+  G4int nHit=hitVec.size();
+  G4int iHit=0;
+  for(itHitVec=hitVec.begin();itHitVec!=hitVec.end();++itHitVec){
+    iHit++;
+    //G4cout<<"MyMessage::Processing hit: "<<iHit<<" of Total Hits: "<<nHit<<G4endl;
+
+    MimosaHit* newHit = *itHitVec;
+    newHit->SetTrackID(trackID);
+    newHit->SetGlobalT(globalT);
+
+    key = newHit->GetRow()*nofCol+newHit->GetCol();
+    itHitMap = hitMap.find(key);
+    if(itHitMap==hitMap.end()){
+      hitsCollection->insert(newHit);    
+      hitMap[key]=G4int(hitsCollection->entries())-1;
+    }
+    else{
+      G4int pointer=(*itHitMap).second; 
+      (*hitsCollection)[pointer]->SetEdep((*hitsCollection)[pointer]->GetEdep()+newHit->GetEdep());
+      delete newHit;
+
+      if(trackID!=(*hitsCollection)[pointer]->GetTrackID()){
+        G4cout<<"track "<<trackID<<" and "<<(*hitsCollection)[pointer]->GetTrackID()
+        <<" are in the same hit!!!"<<G4endl;
+      }
+
+    }
+
+  }
+  G4cout<<"MyMessage::Process HitVec Finished!!!"<<G4endl;
+/*
+  MimosaHit* newHit = new MimosaHit();
+  newHit->SetTrackID(trackID);
+  newHit->SetLayerID(layerID);
+  newHit->SetLadderID(ladderID);
+  newHit->SetChipID(chipID);
+  newHit->SetRow(row);
+  newHit->SetCol(column);
+  newHit->SetEdep(edep);
+  newHit->SetGlobalT(globalT);
+//  newHit->SetTheta(theta);
+//  newHit->SetEnterAngle(enterAngle);
+
+//  G4double edepTemp = 0;
+//  G4double lengthTemp = 0;
+
+  itHitMap = hitMap.find(key);
+  if(itHitMap==hitMap.end()){
+    hitsCollection->insert(newHit);    
+    hitMap[key]=G4int(hitsCollection->entries())-1;
+  }
+  else{
+    G4int pointer=(*itHitMap).second; 
+    (*hitsCollection)[pointer]->SetEdep((*hitsCollection)[pointer]->GetEdep()+edep);
+    delete newHit;
+
+    if(trackID!=(*truthCollection)[pointer]->GetTrackID()){
+      G4cout<<"track "<<trackID<<" and "<<(*truthCollection)[pointer]->GetTrackID()
+      <<" are in the same hit!!!"<<G4endl;
+    }
+
+  }
+*/
+/*
+  G4int NbHits = hitsCollection->entries();
+  for(G4int i=0;i<NbHits;++i){
+    if((*hitsCollection)[i]->InSamePixWith(newHit)){
+	//get edep and length of previous hits
+//	edepTemp = (*hitsCollection)[i]->GetEdep();
+//	lengthTemp = mimosa_hit_length[i];
+
+	//set edep and length to current hit
+    (*hitsCollection)[i]->SetEdep((*hitsCollection)[i]->GetEdep()+edep);
+//	mimosa_hit_length[pointer] += stepLength;
+    
+
+    HitIsNew = false;
+    delete newHit;
+    break;
+    }
+  }
+  if(HitIsNew){
+    hitsCollection->insert(newHit);
+//    mimosa_hit_length.push_back(stepLength);
+  }
+*/
+//for MC truth  
+  if(truthCollection){
+
+    key = row*nofCol+column;
+    itTruthMap = truthMap.find(key);
+    if(itTruthMap==truthMap.end()){
+      MimosaHit* truthHit = new MimosaHit();
+      truthHit->SetTrackID(trackID);
+      truthHit->SetLayerID(layerID);
+      truthHit->SetLadderID(ladderID);
+      truthHit->SetChipID(chipID);
+      truthHit->SetRow(row);
+      truthHit->SetCol(column);
+      truthHit->SetPDGCode(pdgCode);
+      truthHit->SetEdep(edep);
+      truthHit->SetGlobalT(globalT);
+
+      truthCollection->insert(truthHit);
+      truthMap[key]=truthCollection->entries()-1;
+    }
+    else{
+      G4int pointer=(*itTruthMap).second; 
+      if(trackID==(*truthCollection)[pointer]->GetTrackID()){
+	(*truthCollection)[pointer]->SetEdep((*truthCollection)[pointer]->GetEdep()+edep);
+	G4double preGlobalT=(*truthCollection)[pointer]->GetGlobalT();
+	if(globalT<preGlobalT){
+	  (*truthCollection)[pointer]->SetGlobalT(globalT);
+	}
+      }
+      else{
+	MimosaHit* truthHit = new MimosaHit();
+	truthHit->SetTrackID(trackID);
+	truthHit->SetLayerID(layerID);
+	truthHit->SetLadderID(ladderID);
+	truthHit->SetChipID(chipID);
+	truthHit->SetRow(row);
+	truthHit->SetCol(column);
+	truthHit->SetPDGCode(pdgCode);
+	truthHit->SetEdep(edep);
+	truthHit->SetGlobalT(globalT);
+
+	truthCollection->insert(truthHit);
+        truthMap[key]=truthCollection->entries()-1;	
+      }
+    }
+/*
+    G4int NtruthHits = truthCollection->entries();
+    for(G4int i=0;i<NtruthHits;++i){
+      if((*truthCollection)[i]->InSamePixWith(truthHit)&&trackID==(*truthCollection)[i]->GetTrackID()){
+      (*truthCollection)[i]->SetEdep((*truthCollection)[i]->GetEdep()+edep);
+      TruthIsNew = false;
+      delete truthHit;
+      break;
+      }
+    }
+    if(TruthIsNew){
+      truthCollection->insert(truthHit);
+    }
+    */
+  }
+
+
+  return true;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void MimosaSD::EndOfEvent(G4HCofThisEvent*)
+{
+
+  hitMap.clear();
+  truthMap.clear();
+
+  if ( verboseLevel>1 ) { 
+     G4int nofHits = hitsCollection->entries();
+     G4cout << "\n-------->Hits Collection: in this event they are " << nofHits 
+            << " hits in the tracker chambers: " << G4endl;
+     for ( G4int i=0; i<nofHits; i++ ) (*hitsCollection)[i]->Print();
+  }
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+G4bool MimosaSD::HitRealizition(G4double edep,G4ThreeVector locInPos,G4ThreeVector locOutPos,MimosaIdentifier mimosaID){
+/*
+  G4cout<<""<<G4endl;
+  mimosaID.Print();
+  G4cout<<"MyMessage::edep: "<<edep<<G4endl;
+  G4cout<<"MyMessage:: locInPos.X: "<<locInPos.x()<<" Y: "<<locInPos.y()<<" Z: "<<locInPos.z()<<G4endl;
+  G4cout<<"MyMessage::locOutPos.X: "<<locOutPos.x()<<" Y: "<<locOutPos.y()<<" Z: "<<locOutPos.z()<<G4endl;
+  G4cout<<""<<G4endl;
+*/ 
+  G4ThreeVector locMidPos = (locInPos+locOutPos)/2;
+
+// Change to Possion Distribution
+  G4double preEdep=edep*(0.23+0.2*G4UniformRand());
+  G4double postEdep=edep*(0.23+0.2*G4UniformRand());
+  G4double midEdep=edep-preEdep-postEdep;
+  G4cout<<"MyMessage::Edep: "<<edep<<" PreEdep: "<<preEdep<<" PostEdep: "<<postEdep<<" MidEdep: "<<midEdep<<G4endl;
+ 
+  G4int nAdjacentPix=2;
+  for(G4int iC=-nAdjacentPix;iC<nAdjacentPix+1;++iC){
+    for(G4int iR=-nAdjacentPix;iR<nAdjacentPix+1;++iR){
+//      if(iC!=0 || iR!=0){
+	G4double ePix=preEdep*DiffuseE(iC,iR,locInPos);
+	ePix += midEdep*DiffuseE(iC,iR,locMidPos);
+	ePix += postEdep*DiffuseE(iC,iR,locOutPos);
+//      G4cout<<"MyMessage::iC: "<<iC<<" iR: "<<iR<<" DiffuseE: "<<ePix<<" ePercent: "<<100*ePix/edep<<"%"<<G4endl;
+//      G4cout<<""<<G4endl;
+
+	MimosaHit* _hit = new MimosaHit();
+	_hit->SetLayerID(mimosaID.LayerID());
+	_hit->SetLadderID(mimosaID.LadderID());
+	_hit->SetChipID(mimosaID.ChipID());
+	_hit->SetRow(mimosaID.RowID()+iR);
+	_hit->SetCol(mimosaID.ColID()+iC);
+	_hit->SetEdep(ePix);
+
+	hitVec.push_back(_hit);
+//      }
+    }
+  }
+/*
+  G4double ePix=edep;
+  for(itHitVec=hitVec.begin();itHitVec!=hitVec.end();++itHitVec){
+    ePix += -(*itHitVec)->GetEdep();
+  }
+
+  MimosaHit* _hit = new MimosaHit();
+  _hit->SetLayerID(mimosaID.LayerID());
+  _hit->SetLadderID(mimosaID.LadderID());
+  _hit->SetChipID(mimosaID.ChipID());
+  _hit->SetRow(mimosaID.RowID());
+  _hit->SetCol(mimosaID.ColID());
+  _hit->SetEdep(ePix);
+  hitVec.push_back(_hit);
+*/
+  return true;
+}
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+G4double MimosaSD::DiffuseE(G4int locColId,G4int locRowId,G4ThreeVector hitPoint){
+
+  G4cout<<"MyMessage::locHitPosX: "<<hitPoint.x()<<" locHitPosY: "<<hitPoint.y()<<G4endl;
+  G4double pixPitch = mimosaGeoPointer->Layer(0).PitchX() *um;
+//  G4double frac=0.5;
+//  G4double sigma = pixPitch*frac;
+  G4double sigma = 2.75*um;
+  G4int nSector=1;
+  G4double secPitch = pixPitch/(2*nSector+1);
+  G4double cdf = 0;
+  for(G4int iSC=-nSector;iSC<nSector+1;++iSC){
+    for(G4int iSR=-nSector;iSR<nSector+1;++iSR){
+      G4double iX=pixPitch*locColId+secPitch*iSC;
+      G4double iY=pixPitch*locRowId+secPitch*iSR;
+      //gauss pdf
+      G4double pdf = exp(-(pow(iX-hitPoint.x(),2)+pow(iY-hitPoint.y(),2))/(2*sigma*sigma))/(twopi*sigma*sigma);
+
+      //exp pdf
+      //G4double r=sqrt(pow(iX-hitPoint.x(),2)+pow(iY-hitPoint.y(),2));
+      //if(r<=sigma/3) r=sigma/3;
+      //G4double pdf = exp(-r/sigma)/(twopi*r*sigma);
+
+      cdf += pdf*secPitch*secPitch;
+      //G4cout<<"MyMessage::locPosX: "<<iX<<" locPosY: "<<iY<<G4endl;
+    }
+  }
+  
+  G4cout<<""<<G4endl;
+  return cdf;
+
+}
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+

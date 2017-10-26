@@ -1,0 +1,141 @@
+//---------------------------------------------------------------------------//
+//      BOOST --- BESIII Object_Oriented Simulation Tool                     //
+//---------------------------------------------------------------------------//
+//Description:
+//Author: Yuan Ye(yuany@mail.ihep.ac.cn)
+//Created: Oct. 26, 2004
+//Modified:
+//Comment:
+//---------------------------------------------------------------------------//
+
+#include "MimosaDigitizer.hh"
+//#include "MimosaDigitizerMessenger.hh"
+#include "MimosaHit.hh"
+
+#include "G4DigiManager.hh"
+#include "Randomize.hh"
+#include "G4ios.hh"
+#include <string>
+
+MimosaDigitizer::MimosaDigitizer(G4String modName):G4VDigitizerModule(modName){
+
+  mimosaGeo=MimosaGeoParameter::GetGeo();
+
+  collectionName.push_back("MimosaDigisCollection");
+
+  noiseFlag=1;
+
+  G4double noise = 13;  // e- ENC
+  G4double ehpEnergy = 3.6 *eV;
+  energyThreshold = 5*noise*ehpEnergy;
+  //energyThreshold = 0.00018;
+}
+
+MimosaDigitizer::~MimosaDigitizer(){}
+
+void MimosaDigitizer::Digitize(){
+
+  digiMap.clear();
+
+  G4int  NHits,layerId, ladderId, chipId, rowId, columnId; 
+  G4double edep, globalT, theta,cosTheta,enterAngle;
+  G4double fRandom, globalTNew;
+
+
+  G4DigiManager* DigiMan = G4DigiManager::GetDMpointer();
+
+  //hits collection ID
+  G4int THCID=-1;
+  THCID = DigiMan->GetHitsCollectionID("MimosaHitsCollection");
+
+  //hits collection
+  MimosaHitsCollection* THC = 0;
+  THC = (MimosaHitsCollection*) (DigiMan->GetHitsCollection(THCID));
+
+  if(THC){
+    digisCollection=new MimosaDigisCollection(moduleName, collectionName[0]);
+    G4int nofCol=mimosaGeo->Layer(0).ColNo();
+    NHits=THC->entries();
+    for(G4int i=0;i<NHits;i++){
+      layerId = (*THC)[i]->GetLayerID();
+      ladderId = (*THC)[i]->GetLadderID();
+      chipId = (*THC)[i]->GetChipID();
+      rowId = (*THC)[i]->GetRow();
+      columnId = (*THC)[i]->GetCol();
+      edep = (*THC)[i]->GetEdep();
+      globalT = (*THC)[i]->GetGlobalT();
+      //theta = (*THC)[i]->GetTheta();
+      //cosTheta = cos(theta); 
+      //enterAngle = (*THC)[i]->GetEnterAngle();
+
+      fRandom=G4UniformRand();
+      globalTNew=globalT;
+      if(edep>energyThreshold){
+        G4long key = rowId*nofCol+columnId;
+	MimosaDigi* newDigi = new MimosaDigi(); 
+	newDigi->SetTrackID((*THC)[i]->GetTrackID());
+	newDigi->SetLayerID(layerId);
+	newDigi->SetLadderID(ladderId);
+	newDigi->SetChipID(chipId);
+	newDigi->SetRow(rowId);
+	newDigi->SetCol(columnId);
+	newDigi->SetEdep(edep);
+	newDigi->SetGlobalT(globalTNew);
+        G4int NbDigis = digisCollection->insert(newDigi);
+	digiMap[key]=NbDigis-1;
+      }
+
+    } 
+
+    if(noiseFlag==1) AddNoise();
+    
+    if (verboseLevel>0) { 
+      G4cout << "\n-------->digis Collection: in this event they are " 
+	<< digisCollection->entries() 
+	<< " digis in the Mimosa: " << G4endl;
+      digisCollection->PrintAllDigi();
+    } 
+    StoreDigiCollection(digisCollection);  
+  }
+
+}
+
+void MimosaDigitizer::AddNoise(){  
+
+  G4double fakeRate = 10e-4;
+
+  G4double frPerEvt = fakeRate/600;
+
+  G4int nRow=mimosaGeo->Layer(0).RowNo();
+  G4int nCol=mimosaGeo->Layer(0).ColNo();
+  G4int nPix=mimosaGeo->Layer(0).PixNo();  
+//  G4int nNoisePix = nPix*frPerEvt+G4RandGauss::shoot(0,0.5);
+  G4int nNoisePix = G4RandGauss::shoot(0,1.5);
+  if(nNoisePix<0) nNoisePix = 0;
+
+  G4cout<<"MyMessage::nNoisePix: "<<nNoisePix<<G4endl;
+
+  for(G4int i=0;i<nNoisePix;++i){
+
+    G4int rowId=nRow*G4UniformRand();
+    G4int colId=nCol*G4UniformRand();
+
+    G4long key=rowId*nCol+colId;
+    itDigiMap=digiMap.find(key);
+    if(itDigiMap==digiMap.end()){
+      G4double noiseE=energyThreshold*G4RandGauss::shoot();
+      if(noiseE<energyThreshold) noiseE += 2*(energyThreshold-noiseE);
+
+      MimosaDigi* newDigi = new MimosaDigi();
+      newDigi->SetTrackID(-1);
+      newDigi->SetLayerID(0);
+      newDigi->SetLadderID(0);
+      newDigi->SetChipID(0);
+      newDigi->SetRow(rowId);
+      newDigi->SetCol(colId);
+      newDigi->SetEdep(noiseE);
+      newDigi->SetGlobalT(0);
+      digisCollection->insert(newDigi);
+    }
+  }
+}
