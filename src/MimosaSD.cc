@@ -38,6 +38,7 @@
 #include "G4ios.hh"
 #include "Randomize.hh"
 
+#pragma clang diagnostic ignored "-Wunused-variable"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
   MimosaSD::MimosaSD(const G4String& name)

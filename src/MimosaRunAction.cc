@@ -59,7 +59,7 @@ void MimosaRunAction::BeginOfRunAction(const G4Run* run)
   // Create Mimosa Writer
   MimosaWriter* mWriter = MimosaWriter::Instance();
 
-  char fileName[200] = "/home/xiuql/Work/Geant4/AnaMimosa/RawData/Mimosa.rawdat";
+  char fileName[200] = "/Users/chenliejian/Documents/Code/MimosaDigitizer/Mimosa/work/Mimosa.rawdat";
   std::string fileout = fileName;
   mWriter->OpenFile(fileout);
 

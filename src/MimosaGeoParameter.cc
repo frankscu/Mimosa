@@ -38,9 +38,9 @@ void MimosaGeoParameter::Initialize(void){
 
 void MimosaGeoParameter::InitFromFile(){
 
-  std::string geometryFilePath = "/home/xiuql/Work/Geant4/Mimosa";
+  std::string geometryFilePath = "/Users/chenliejian/Documents/Code/MimosaDigitizer/Mimosa";
   geometryFilePath += "/dat/Spt.txt";
-  std::ifstream fin(geometryFilePath.c_str());
+  std::ifstream fin(geometryFilePath.c_str(),ios::in);
 
 //  string filename="/afs/.ihep.ac.cn/bes3/offline/Boss/mdcu/SuperBoss/1.0.3/Simulation/BOOST/SptSim/SptSim-00-01-00//dat/Spt.txt";
 //  ifstream fin(filename.c_str(),ios::in);

@@ -53,6 +53,8 @@
 
 #include <stdio.h>
 
+#pragma clang diagnostic ignored "-Wunused-variable" //FIX ME
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MimosaDetectorConstruction::MimosaDetectorConstruction()

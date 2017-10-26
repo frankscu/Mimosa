@@ -41,17 +41,12 @@ target_link_libraries(mimosa ${Geant4_LIBRARIES})
 # build Mimosa. This is so that we can run the executable directly because it
 # relies on these scripts being in the current working directory.
 #
+file(GLOB MACROLIST RELATIVE ${PROJECT_SOURCE_DIR} "macros/*.mac")
 set(EXAMPLEMimosaC_SCRIPTS
-  mimosa.out
-  mimosa.in
-  gui.mac
-  init.mac
-  init_vis.mac
-  run1.mac
-  run2.mac
-  myRun.mac
-  vis.mac
-  )
+    ${MACROLIST}
+    macros/mimosa.out
+    macros/mimosa.in
+    )
 
 foreach(_script ${EXAMPLEMimosaC_SCRIPTS})
   configure_file(

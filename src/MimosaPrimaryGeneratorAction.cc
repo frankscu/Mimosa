@@ -41,6 +41,8 @@
 #include "Randomize.hh"
 #include "G4SystemOfUnits.hh"
 
+#pragma clang diagnostic ignored "-Wunused-variable"
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 MimosaPrimaryGeneratorAction::MimosaPrimaryGeneratorAction()

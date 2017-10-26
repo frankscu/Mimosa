@@ -25,6 +25,9 @@ class G4Svc;
 #include "globals.hh"
 #include <vector>
 
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#pragma clang diagnostic ignored "-Wshadow"
+
 class MimosaDigitizer : public G4VDigitizerModule
 {
 public:
