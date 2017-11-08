@@ -95,7 +95,7 @@ void MimosaDigitizer::Digitize(){
                 G4int NbDigis = digisCollection->insert(newDigi);
                 digiMap[key]=NbDigis-1;
                 nrHit++;
-                //G4cout<<"MyMessage::Processing Digi: "<<" layer: "<<_realHit->GetLayerID()<<" ladder: "<<_realHit->GetLadderID()<<" Chip: "<<_realHit->GetChipID()<<" Row: "<<_realHit->GetRow()<<" Col: "<<_realHit->GetCol()<<" Edep: "<<_realHit->GetEdep()<<", ehPairs: "<<_realHit->GetEdep()/ehpEnergy<<", ADC: "<<adc<<G4endl;
+                G4cout<<"MyMessage::Processing Digi: "<<" layer: "<<_realHit->GetLayerID()<<" ladder: "<<_realHit->GetLadderID()<<" Chip: "<<_realHit->GetChipID()<<" Row: "<<_realHit->GetRow()<<" Col: "<<_realHit->GetCol()<<" Edep: "<<_realHit->GetEdep()<<", ehPairs: "<<_realHit->GetEdep()/ehpEnergy<<", ADC: "<<adc<<G4endl;
             }
             delete _realHit;
         }

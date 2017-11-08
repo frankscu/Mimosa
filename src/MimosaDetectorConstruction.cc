@@ -357,6 +357,7 @@ G4VPhysicalVolume* MimosaDetectorConstruction::DefineVolumes()
   G4VisAttributes* cyan= new G4VisAttributes(G4Colour::Cyan());
   G4VisAttributes* magenta= new G4VisAttributes(G4Colour::Magenta());
 
+  //chipLV->SetVisAttributes(green);
   chipLV->SetVisAttributes(G4VisAttributes::Invisible);
   //sensorLV->SetVisAttributes(G4VisAttributes::Invisible);
   asicLV->SetVisAttributes(cyan);
