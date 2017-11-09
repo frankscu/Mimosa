@@ -33,11 +33,15 @@ public:
   int ADCBitNo() const {return adcBitNo;};
   int ADCRange() const {return adcRange;};
   double CCE() const {return cce;};
+  double ENC() const {return enc;};
+  int DigiMethod() const {return _digiMethod;};
   unsigned int PixNo() const {return RowNo()*ColNo();};
   double R() const {return radius;};
   double Phi() const {return chipPhi;};
   double PitchX() const {return pixPitchX;};
   double PitchY() const {return pixPitchY;};
+  double DiodeOffsetX() const{return diodeOffsetX;};
+  double DiodeOffsetY() const{return diodeOffsetY;};
   double SensorThick() const {return sensorTh;};
   double SubstrateThick() const {return substrTh;};
   double AsicThick() const {return asicTh;};
@@ -51,10 +55,14 @@ public:
   void ADCBitNo(int nBit) { adcBitNo=nBit;};
   void ADCRange(int range) { adcRange=range;};
   void CCE(double c) { cce=c;};
+  void ENC(double e) { enc=e;};
+  void DigiMethod(int dm) { _digiMethod=dm;};
   void R(double r) { radius=r;};
   void Phi(double phi) { chipPhi=phi;};
   void PitchX(double px) { pixPitchX=px;};
   void PitchY(double py) { pixPitchY=py;};
+  void DiodeOffsetX(double offsetX) { diodeOffsetX=offsetX;};
+  void DiodeOffsetY(double offsetY) { diodeOffsetX=offsetY;};
   void SensorThick(double th) { sensorTh=th;};
   void SubstrateThick(double th) { substrTh=th;};
   void AsicThick(double th) { asicTh=th;};
@@ -68,12 +76,17 @@ private:
   int adcBitNo;
   int adcRange;
   double cce; //charge collection efficiency
+  double enc; //noise level
+  int _digiMethod; //digitiz method
 
   double radius;
   double chipPhi;  //phi
 
   //Pitch of pixel
   double pixPitchX, pixPitchY;
+
+  //Diode offset
+  double diodeOffsetX, diodeOffsetY;
 
   //Thickness of sensor layer
   double sensorTh, substrTh, asicTh;

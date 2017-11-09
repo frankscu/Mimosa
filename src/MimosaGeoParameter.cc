@@ -47,8 +47,8 @@ void MimosaGeoParameter::InitFromFile(){
         return;
     }
 
-    int rowNo, colNo, nAdcBit, adcR;
-    double chipL,chipW,asicTh,sensorTh,substrTh,pitchR,pitchC,_cce;
+    int rowNo, colNo, nAdcBit, adcR, _digiMethod;
+    double chipL,chipW,asicTh,sensorTh,substrTh,pitchR,pitchC,diodeOffsetX,diodeOffsetY,_cce,_enc;
     int ladderNo,chipNo;
     double ssL,ssW,epoxyT,kptT,mfT,cfT,_R,_Phi,_PhaseAngle;
     double segInnR,segOutR,segL,segZ;
@@ -68,8 +68,8 @@ void MimosaGeoParameter::InitFromFile(){
     fin.seekg(1,ios::cur);
     std::getline(fin, line);
 
-    fin>>chipL>>chipW>>asicTh>>sensorTh>>substrTh>>pitchR>>pitchC>>rowNo>>colNo>>nAdcBit>>adcR>>_cce;
-    cout<<"L: "<<chipL<<" W: "<<chipW<<" asTh: "<<asicTh<<" senTh: "<<sensorTh<<" subTh: "<<substrTh<<" pitchR: "<<pitchR<<" pitchC: "<<pitchC<<" rowNo: "<<rowNo<<" colNo: "<<colNo<<" ADCBitNo: "<<nAdcBit<<" ADCRange: "<<adcR<<" CCE: "<<_cce<<endl;
+    fin>>chipL>>chipW>>asicTh>>sensorTh>>substrTh>>pitchR>>pitchC>>diodeOffsetX>>diodeOffsetY>>rowNo>>colNo>>nAdcBit>>adcR>>_cce>>_enc>>_digiMethod;
+    cout<<"L: "<<chipL<<" W: "<<chipW<<" asTh: "<<asicTh<<" senTh: "<<sensorTh<<" subTh: "<<substrTh<<" pitchR: "<<pitchR<<" pitchC: "<<pitchC<<" diodeOffsetX: "<<diodeOffsetX<<" diodeOffsetY: "<<diodeOffsetY<<" rowNo: "<<rowNo<<" colNo: "<<colNo<<" ADCBitNo: "<<nAdcBit<<" ADCRange: "<<adcR<<" CCE: "<<_cce<<" Noise: "<<_enc<<endl;
 
     fin.seekg(1,ios::cur);
     getline(fin, line);
@@ -107,8 +107,12 @@ void MimosaGeoParameter::InitFromFile(){
         fLayer[i].ADCBitNo(nAdcBit);
         fLayer[i].ADCRange(adcR);
         fLayer[i].CCE(_cce);
+        fLayer[i].ENC(_enc);
+        fLayer[i].DigiMethod(_digiMethod);
         fLayer[i].PitchX(pitchC);  //*um
         fLayer[i].PitchY(pitchR);  //*um
+        fLayer[i].DiodeOffsetX(diodeOffsetX);
+        fLayer[i].DiodeOffsetY(diodeOffsetY);
         fLayer[i].ChipLength(chipL);   //*mm
         fLayer[i].ChipWidth(chipW);   //*mm
         fLayer[i].AsicThick(asicTh);     //*um

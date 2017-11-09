@@ -26,11 +26,13 @@ public:
   void WhichPixel(double posX, double posY);
 
   G4ThreeVector PixelPos();
+  std::vector<G4ThreeVector> PixelDiode();
 
   void Print();
 
 private:
   int m_layerId,m_ladderId,m_chipId,m_columnId,m_rowId;
+  std::vector<G4ThreeVector> posDiode;
 //  int64_t m_pixelId;
   unsigned int m_pixelId;
   int m_globalChipId;

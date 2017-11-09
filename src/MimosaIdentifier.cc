@@ -64,6 +64,41 @@ G4ThreeVector MimosaIdentifier::PixelPos(){
   G4ThreeVector pos(posX,posY,posZ);
   return pos;
 }
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+std::vector<G4ThreeVector> MimosaIdentifier::PixelDiode(){
+  int nofCol=mimosaGeo->Layer(m_layerId).ColNo();
+  int nofRow=mimosaGeo->Layer(m_layerId).RowNo();
+  double pixPitchX=mimosaGeo->Layer(0).PitchX() *um;
+  double pixPitchY=mimosaGeo->Layer(0).PitchY() *um;
+  double sensorSizeX=pixPitchX*nofCol;
+  double sensorSizeY=pixPitchY*nofRow;
+  double posX=(m_columnId+0.5)*pixPitchX-(sensorSizeX/2.);
+  double posY=(m_rowId+0.5)*pixPitchY-(sensorSizeY/2.);
+  double posZ=0;
+  
+  double diodeOffsetX=mimosaGeo->Layer(m_layerId).DiodeOffsetX();
+  double diodeOffsetY=mimosaGeo->Layer(m_layerId).DiodeOffsetY();
+  double diodePosXLT=posX-(pixPitchX/2-diodeOffsetX); 
+  double diodePosYLT=posY+(pixPitchY/2-diodeOffsetY);
+  double diodePosXLB=posX-(pixPitchX/2-diodeOffsetX);
+  double diodePosYLB=posY-(pixPitchY/2-diodeOffsetY);
+  double diodePosXRT=posX+(pixPitchX/2-diodeOffsetX);
+  double diodePosYRT=posY+(pixPitchY/2-diodeOffsetY);
+  double diodePosXRB=posX+(pixPitchX/2-diodeOffsetX);
+  double diodePosYRB=posY-(pixPitchY/2-diodeOffsetY);
+  G4ThreeVector posLT(diodePosXLT,diodePosYLT,posZ);
+  G4ThreeVector posLB(diodePosXLB,diodePosYLB,posZ);
+  G4ThreeVector posRT(diodePosXRT,diodePosYRT,posZ);
+  G4ThreeVector posRB(diodePosXRB,diodePosYRB,posZ);
+  posDiode.push_back(posLT);
+  posDiode.push_back(posLB);
+  posDiode.push_back(posRT);
+  posDiode.push_back(posRB);
+  //G4cout<<"posLT: "<<posLT<<G4endl;
+  return posDiode;
+}
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void MimosaIdentifier::Print(){

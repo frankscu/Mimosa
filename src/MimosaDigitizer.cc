@@ -32,10 +32,11 @@ MimosaDigitizer::MimosaDigitizer(G4String modName):G4VDigitizerModule(modName){
     nAdcBit = mimosaGeo->Layer(0).ADCBitNo();
     cce = mimosaGeo->Layer(0).CCE();
 
-    enc = 30;  // e- ENC
+    enc = mimosaGeo->Layer(0).ENC();
+    
     pedestal = 0;
     ehpEnergy = 3.6 *eV;
-    energyThreshold = (pedestal+5*enc)*ehpEnergy;
+    energyThreshold = (pedestal+10*enc)*ehpEnergy;
     adcEnergyRange = mimosaGeo->Layer(0).ADCRange()*ehpEnergy;
 }
 
@@ -206,6 +207,7 @@ void MimosaDigitizer::HitRealizitionEelectrode(MimosaHit* rawHit){
     G4ThreeVector locMidPos = (locInPos+locOutPos)/2;
     G4int nofCol = mimosaGeo->Layer(0).ColNo();
     G4int nofRow = mimosaGeo->Layer(0).RowNo();
+    G4int digiMethod = mimosaGeo->Layer(0).DigiMethod();
 
     G4ThreeVector locSegPos;
     G4int nSegments = 10; //Step segment
@@ -234,8 +236,14 @@ void MimosaDigitizer::HitRealizitionEelectrode(MimosaHit* rawHit){
 
                 if(subColID>-1 && subColID<nofCol && subRowID>-1 && subRowID<nofRow){
                     // GaussLorentz diffusion collected in electrode
-                    ePix = SegEdep*DiffuseGaussLorentzEelectrode(iMimosaId,locSegPos);
-                    G4cout<<"SegEdep: "<<SegEdep<<", "<<ePix<<G4endl;
+                    if(digiMethod == 0){
+                        if (verboseLevel>0){ G4cout<<"Gauss lorentz is in use!" << G4endl;}
+                        ePix = SegEdep*DiffuseGaussLorentzElectrode(iMimosaId,locSegPos);
+                    }else if(digiMethod == 1){
+                        if(verboseLevel>0){G4cout<<"Gauss lorentz with four diode is in use!" << G4endl;}
+                        ePix = SegEdep*OverMOSDiffuseGaussLorentzElectrode(iMimosaId,locSegPos);
+                    }
+                    if(verboseLevel>0){G4cout<<"SegEdep: "<<SegEdep<<", "<<ePix<<G4endl;}
 
                 } 
                 ePixArray[nAdjacentPix+iC][nAdjacentPix+iR]=ePix;
@@ -264,7 +272,7 @@ void MimosaDigitizer::HitRealizitionEelectrode(MimosaHit* rawHit){
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 
-double MimosaDigitizer::DiffuseGaussLorentzEelectrode(MimosaIdentifier& mimosaId, G4ThreeVector hitPoint)
+double MimosaDigitizer::DiffuseGaussLorentzElectrode(MimosaIdentifier& mimosaId, G4ThreeVector hitPoint)
 {
     G4double pixPitchX=mimosaGeo->Layer(0).PitchX()*um;
     G4double pixPitchY=mimosaGeo->Layer(0).PitchY()*um;
@@ -331,6 +339,91 @@ double MimosaDigitizer::DiffuseGaussLorentzEelectrode(MimosaIdentifier& mimosaId
 
     G4double pdf=N0*pdf1+N1*pdf2;
     G4double factor=1./2;
+
+    return pdf*factor;
+}
+
+double MimosaDigitizer::OverMOSDiffuseGaussLorentzElectrode(MimosaIdentifier& mimosaId, G4ThreeVector hitPoint)
+{
+    //G4double pixPitchX=mimosaGeo->Layer(0).PitchX()*um;
+    //G4double pixPitchY=mimosaGeo->Layer(0).PitchY()*um;
+
+    //center pixel 
+    G4double Csigma = 42.1*um;
+    G4double CN0=17.5;
+    G4double CN1=211.8*um;
+    G4double Cd0=-230.8*um;
+    G4double Cd1=-170.6*um;
+    G4double CGamma=23.6*um;
+
+    G4double Osigma = 42.1*um;
+    G4double ON0=17.5;
+    G4double ON1=211.8*um;
+    G4double Od0=-230.8*um;
+    G4double Od1=-170.6*um;
+    G4double OGamma=23.6*um;
+
+    G4double sigma,N0,N1,d0,d1,Gamma; 
+
+    //G4ThreeVector iPixPos = mimosaId.PixelPos();
+    std::vector<G4ThreeVector> pixDiode = mimosaId.PixelDiode();
+    std::vector<G4ThreeVector>::iterator ipixDiode;
+    //G4double iX=iPixPos.x();
+    //G4double iY=iPixPos.y();
+    //G4double dxRaw=hitPoint.x()-iX;
+    //G4double dyRaw=hitPoint.y()-iY;
+    G4double dxRaw=0;
+    G4double dyRaw=0;
+
+    //cout<<"pixPitchX: "<<pixPitchX<<", pixPitchY: "<<pixPitchY<<endl;
+    //cout<<"iX: "<<iX<<", dx: "<<dx<<", iY: "<<iY<<", dy: "<<dy<<endl;
+    for(ipixDiode=pixDiode.begin();ipixDiode!=pixDiode.end();++ipixDiode){
+        //G4cout<<"Pixel diode vector: "<<*ipixDiode<<G4endl;
+        G4double tmp_dxRaw=hitPoint.x()-ipixDiode->x();
+        if(tmp_dxRaw<dxRaw){ dxRaw=tmp_dxRaw;}
+        
+        G4double tmp_dyRaw=hitPoint.y()-ipixDiode->y();
+        if(tmp_dyRaw<dyRaw){ dyRaw=tmp_dyRaw;}
+    }
+    //G4cout<<"dxRaw: "<<dxRaw<<", dyRaw: "<<dyRaw<<G4endl;
+
+    G4double pixEdgeCut=24*um;
+    //G4double nominalPixPitch=22.5*um;
+    //G4double nominalPixPitch=pixEdgeCut-0.05*(pixPitchX-10*um);
+    //G4double dx = dxRaw*nominalPixPitch/pixPitchX;
+    //G4double dy = dyRaw*nominalPixPitch/pixPitchY;
+    G4double dx = dxRaw;
+    G4double dy = dyRaw;
+
+    // The distance between the reconstructed position of the cluster and the diode in collection of pixel in the XY sensor
+    G4double d = sqrt(pow(dx,2)+pow(dy,2));
+
+
+    G4double pdf1,pdf2;
+    //if(fabs(dx)<=(pixPitchX/2) && fabs(dy)<=(pixPitchY/2))
+    if(fabs(dx)<=pixEdgeCut && fabs(dy)<=pixEdgeCut){
+        sigma = Csigma;
+        N0    = CN0;
+        N1    = CN1;
+        d0    = Cd0;
+        d1    = Cd1;
+        Gamma = CGamma;
+    }else{
+        sigma = Osigma;
+        N0    = ON0;
+        N1    = ON1;
+        d0    = Od0;
+        d1    = Od1;
+        Gamma = OGamma;
+    }
+
+    // Reference Loic COUSIN
+    // Charge Collection
+    pdf1=exp(-pow((d-d0),2)/(2*sigma*sigma));
+    pdf2=Gamma/(Gamma*Gamma+pow((d-d1),2));
+
+    G4double pdf=N0*pdf1+N1*pdf2;
+    G4double factor=11.33337;
 
     return pdf*factor;
 }

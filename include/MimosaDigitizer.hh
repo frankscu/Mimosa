@@ -46,7 +46,8 @@ public:
   void DiffuseE(G4double edep,G4ThreeVector hitPoint,MimosaIdentifier& mimosaId,MimosaHit* rawHit);
 
   void HitRealizitionEelectrode(MimosaHit* rawHit);
-  double DiffuseGaussLorentzEelectrode(MimosaIdentifier& mimosaId, G4ThreeVector hitPoint);
+  double DiffuseGaussLorentzElectrode(MimosaIdentifier& mimosaId, G4ThreeVector hitPoint);
+  double OverMOSDiffuseGaussLorentzElectrode(MimosaIdentifier& mimosaId, G4ThreeVector hitPoint);
 
   void PixelIntegration(G4double ePix,MimosaIdentifier& mimosaId,MimosaHit* rawHit);
 

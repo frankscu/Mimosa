@@ -1,9 +1,9 @@
 LayerNo
 3
 ****************** Chip Information *****************
-Length	Width	AsicTh	SenTh	SubTh	PitchRow	PitchCol        RowNo   ColNo   AdcBit          AdcRange          CCE
-mm	mm	um	um	um	um		um
-2	2	10.	18.	25.     40           400           5   5   10        800        1.0
+Length	Width	AsicTh	SenTh	SubTh	PitchRow	PitchCol    DiodeOffsetX    DiodeOffsetY        RowNo   ColNo   AdcBit          AdcRange          CCE   ENC DigiMethod
+mm	mm	um	um	um	um		um      um      um      e
+3	1	10.	18.	25.     40           400    6   6      5   5   10        800        1.0     30  1
 ****************** Support Structure ****************
 LaddW	thEp	thKpt	thAl	thCF
 mm	um	um	um	um

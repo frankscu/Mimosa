@@ -49,6 +49,7 @@
 #include "G4String.hh"
 #include "G4Event.hh"
 #include "G4ParticleGun.hh"
+#include "G4GeneralParticleSource.hh"
 
 class MimosaPrimaryGeneratorActionMessenger;
 
@@ -74,6 +75,7 @@ class MimosaPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
 
     private:
         G4ParticleGun* fParticleGun;
+        G4GeneralParticleSource* fParticleSource;
         MimosaPrimaryGeneratorActionMessenger* m_PrimaryGeneratorActionMessenger;
         G4String m_particleType;
         G4double m_gunPosXYSpread;
