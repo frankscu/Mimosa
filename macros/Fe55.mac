@@ -29,6 +29,6 @@
 
 /gps/source/list
 
-/Mimosa/event/setPrintModulo 10000
-/run/beamOn 50000
+/Mimosa/event/setPrintModulo 1000
+/run/beamOn 5000
 

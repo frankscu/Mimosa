@@ -1,24 +1,24 @@
 LayerNo
 3
 ****************** Chip Information *****************
-Length	Width	AsicTh	SenTh	SubTh	PitchRow	PitchCol    DiodeOffsetX    DiodeOffsetY        RowNo   ColNo   AdcBit          AdcRange          CCE   ENC DigiMethod
-mm	mm	um	um	um	um		um      um      um      e
-3	1	10.	18.	25.     40           400    6   6      5   5   10        800        1.0     30  1
+Length Width AsicTh SenTh SubTh PitchRow PitchCol DiodeOffsetX DiodeOffsetY RowNo ColNo AdcBit AdcRange CCE ENC DigiMethod
+mm     mm    um     um    um    um       um       um           um           e
+3      1     10.    18.   25.   40       400      6            6            5     5     10     800      1.0 30  1
 ****************** Support Structure ****************
-LaddW	thEp	thKpt	thAl	thCF
-mm	um	um	um	um
-2.5	50	100	50	500
+LaddW thEp thKpt thAl thCF
+mm    um   um    um   um
+2.5   50   100   50   500
 ****************** Layer Information ****************
-Layer	LaddNo	LaddL	ChipNo	R	Phi	PhaseAngle
-		mm		mm	degree	degree
-Spt1	26	400	18	73.	0.	8.
-Spt2	30	500	23	87.	0.	7.
-Spt3	36	600	27	100.	0.	7.
+Layer	LaddNo	LaddL	ChipNo	R	  Phi	PhaseAngle
+mm		mm	    degree	degree
+Spt1	26	    400	    18	    73.	  0.	8.
+Spt2	30	    500	    23	    87.	  0.	7.
+Spt3	36	    600	    27	    100.  0.	7.
 ****************** SptSegment Information ****************
 SptSegmentNo
 1
 name	InnR	OutR	Length	Z
-	mm	mm	mm	mm
+mm	mm	mm	mm
 Spt	59	180	600	0
 
 //backup

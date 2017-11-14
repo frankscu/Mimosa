@@ -41,8 +41,8 @@
 #pragma clang diagnostic ignored "-Wunused-variable"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-  MimosaSD::MimosaSD(const G4String& name)
-: G4VSensitiveDetector(name),
+MimosaSD::MimosaSD(const G4String& name)
+  : G4VSensitiveDetector(name),
   hitsCollection(0)
 {
   collectionName.insert("MimosaHitsCollection");
@@ -100,7 +100,7 @@ HLID = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[1]);
 G4HCofThisEvent* HCE = evt->GetHCofThisEvent();
 HCE->AddHitsCollection(HLID,truthCollection);
 }
- */
+*/
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

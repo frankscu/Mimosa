@@ -102,6 +102,7 @@ int main(int argc,char** argv)
   UImanager->SetCoutDestination(LoggedSession);
   LoggedSession->SessionStart();
 
+  UImanager->ApplyCommand("/control/macroPath /Users/chenliejian/Documents/Code/MimosaDigitizer/Mimosa/macros");
   
   if (argc!=1)   // batch mode
     {
